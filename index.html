@@ -19,14 +19,14 @@
   /* whole layout drifts slowly to spread static pixels */
   #stage {
     position: absolute; inset: 4vh 4vw;
-    display: grid; grid-template-columns: 1.15fr 1fr; grid-template-rows: auto 1fr; gap: 3vh 4vw;
+    display: grid; grid-template-columns: 1.15fr 1fr; grid-template-rows: auto 1fr auto; gap: 2.6vh 4vw;
     transition: transform 20s ease-in-out;
   }
   .ar { font-family: "Geeza Pro", "Noto Naskh Arabic", "Arial", sans-serif; direction: rtl; }
 
   /* clock */
   #clockBox { grid-column: 1; grid-row: 1; }
-  #time { font-size: 17vh; font-weight: 200; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+  #time { font-size: 14vh; font-weight: 200; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
   #time small { font-size: 0.32em; color: var(--muted); margin-left: 0.4em; font-weight: 300; }
   #dates { margin-top: 1.6vh; font-size: 3vh; color: var(--muted); display: flex; gap: 1.5vw; flex-wrap: wrap; align-items: baseline; }
   #dates .hijri { color: var(--accent); }
@@ -39,7 +39,7 @@
   #countdown { font-size: 4.2vh; color: var(--accent); font-variant-numeric: tabular-nums; margin-top: 0.4vh; }
 
   /* prayer list */
-  #prayers { grid-column: 1; grid-row: 2; align-self: end; display: grid; grid-template-columns: repeat(6, 1fr); gap: 1vw; }
+  #prayers { grid-column: 1; grid-row: 3; align-self: end; display: grid; grid-template-columns: repeat(6, 1fr); gap: 1vw; }
   .p { background: var(--card); border: 1px solid var(--line); border-radius: 1.4vh; padding: 2.2vh 1vw; text-align: center; }
   .p .ar { font-size: 3.2vh; display: block; }
   .p .en { font-size: 1.9vh; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 0.5vh; display: block; }
@@ -50,17 +50,39 @@
   .p.past { opacity: 0.45; }
 
   /* weather */
-  #weather { grid-column: 2; grid-row: 2; align-self: end; }
+  #weather { grid-column: 2; grid-row: 3; align-self: end; }
   #now { display: flex; align-items: center; justify-content: flex-end; gap: 2vw; }
-  #nowIcon { font-size: 11vh; line-height: 1; }
-  #nowTemp { font-size: 12vh; font-weight: 200; line-height: 1; }
-  #nowDesc { text-align: right; font-size: 2.6vh; color: var(--muted); margin-top: 1vh; }
-  #days { margin-top: 3vh; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8vw; }
+  #nowIcon { font-size: 8vh; line-height: 1; }
+  #nowTemp { font-size: 9vh; font-weight: 200; line-height: 1; }
+  #nowDesc { text-align: right; white-space: nowrap; font-size: 2.3vh; color: var(--muted); margin-top: 1vh; }
+  #days { margin-top: 2vh; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8vw; }
   .d { background: var(--card); border: 1px solid var(--line); border-radius: 1.4vh; padding: 1.8vh 0.5vw; text-align: center; }
   .d .n { font-size: 2vh; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
   .d .i { font-size: 4.6vh; margin: 1vh 0; }
   .d .hi { font-size: 2.8vh; }
   .d .lo { font-size: 2.2vh; color: var(--muted); margin-left: 0.4vw; }
+  /* matches */
+  #matches { grid-column: 1 / 3; grid-row: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 4vw; min-height: 0; }
+  .league { min-height: 0; overflow: hidden; }
+  .lhead { display: flex; align-items: center; gap: 0.8vw; padding-bottom: 1vh; margin-bottom: 0.8vh; border-bottom: 1px solid var(--line); }
+  .lhead img { height: 3.4vh; width: 3.4vh; object-fit: contain; }
+  .lhead .ln { font-size: 2.6vh; }
+  .lhead .ln .ar { color: var(--accent); margin-left: 0.6vw; }
+  .lhead .lday { margin-left: auto; font-size: 1.9vh; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .m { display: grid; grid-template-columns: 1fr 9vw 1fr; align-items: center; gap: 0.8vw; height: 4.6vh; font-size: 2.3vh; }
+  .m .tm { display: flex; align-items: center; gap: 0.6vw; min-width: 0; }
+  .m .tm span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m .home { justify-content: flex-end; text-align: right; }
+  .m img { height: 3vh; width: 3vh; object-fit: contain; flex: none; }
+  .m .mid { text-align: center; font-variant-numeric: tabular-nums; }
+  .m .ko { color: var(--muted); }
+  .m .sc { font-size: 2.6vh; font-weight: 500; }
+  .m .st { display: block; font-size: 1.5vh; color: var(--muted); }
+  .m.live .sc { color: #ff6b5e; }
+  .m.live .st { color: #ff6b5e; animation: pulse 2s ease-in-out infinite; }
+  .m.post { opacity: 0.6; }
+  .empty { font-size: 2.2vh; color: var(--muted); padding-top: 1vh; }
+  .pg { font-size: 1.6vh; color: #4a5160; text-align: right; margin-top: 0.4vh; }
   #status { position: absolute; right: 4vw; bottom: 1.2vh; font-size: 1.6vh; color: #4a5160; }
   #radio {
     position: absolute; left: 4vw; bottom: 1.2vh; font-size: 1.9vh; color: var(--muted);
@@ -89,6 +111,11 @@
     <div id="nextLabel">Next prayer · Riyadh</div>
     <div id="nextName">—</div>
     <div id="countdown"></div>
+  </div>
+
+  <div id="matches">
+    <div class="league" id="lg-ucl"></div>
+    <div class="league" id="lg-spl"></div>
   </div>
 
   <div id="prayers"></div>
@@ -340,9 +367,108 @@
   requestWakeLock();
   startKeepAwakeVideo();
 
+  // ---------- today's matches (ESPN public scoreboard) ----------
+  var LEAGUES = [
+    { id: 'ucl', slug: 'uefa.champions', en: 'Champions League', ar: 'دوري أبطال أوروبا' },
+    { id: 'spl', slug: 'ksa.1', en: 'Saudi Pro League', ar: 'دوري روشن السعودي' }
+  ];
+  var PER_PAGE = 6, matchData = {}, matchPage = 0, anyLive = false, matchTimer = null;
+
+  function ymd(d) { return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); }
+  function riyadhDateOf(iso) { var d = new Date(iso); return new Date(d.getTime() + 180 * 60000); } // UTC -> Riyadh wall clock (read with getUTC*)
+  function riyadhKey(iso) { var d = riyadhDateOf(iso); return d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()); }
+  function kickoff(iso) {
+    var d = riyadhDateOf(iso), h = d.getUTCHours(), ap = h >= 12 ? 'PM' : 'AM';
+    return (h % 12 || 12) + ':' + pad(d.getUTCMinutes()) + ' ' + ap;
+  }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // Collect events whose Riyadh-local date is `key`. ESPN groups by US date, so look at that day and the next.
+  function fetchDay(lg, day, done) {
+    var key = ymd(day), next = ymd(new Date(day.getTime() + 86400000)), got = [], pending = 2, logo = null;
+    function one(dstr) {
+      getJSON('https://site.api.espn.com/apis/site/v2/sports/soccer/' + lg.slug + '/scoreboard?dates=' + dstr, function (j) {
+        var logos = (j.leagues && j.leagues[0] && j.leagues[0].logos) || [];
+        logos.forEach(function (l) { if (!logo || (l.rel || []).indexOf('dark') >= 0) logo = l.href; }); // dark-background variant
+        (j.events || []).forEach(function (e) { if (riyadhKey(e.date) === key) got.push(e); });
+        if (--pending === 0) finish();
+      }, function () { if (--pending === 0) finish(true); });
+    }
+    function finish(failed) {
+      var seen = {}, list = [];
+      got.forEach(function (e) { if (!seen[e.id]) { seen[e.id] = 1; list.push(e); } });
+      list.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+      done(list, logo, failed);
+    }
+    one(key); one(next);
+  }
+
+  // Today's games; if there are none, show the next match day (up to a week ahead).
+  function loadLeague(lg, offset) {
+    var today = riyadhNow(), day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
+    fetchDay(lg, day, function (list, logo, failed) {
+      if (!list.length && !failed && offset < 7) { loadLeague(lg, offset + 1); return; }
+      matchData[lg.id] = { list: list, logo: logo, day: day, offset: offset, failed: failed && !list.length };
+      renderMatches();
+    });
+  }
+
+  function dayLabel(d, offset) {
+    if (offset === 0) return 'Today';
+    if (offset === 1) return 'Tomorrow';
+    return DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+  }
+
+  function teamCell(c, side) {
+    var t = c.team || {}, img = t.logo ? '<img src="' + esc(t.logo) + '" onerror="this.style.visibility=\'hidden\'">' : '';
+    var name = '<span>' + esc(t.shortDisplayName || t.displayName || '') + '</span>';
+    return '<div class="tm ' + side + '">' + (side === 'home' ? name + img : img + name) + '</div>';
+  }
+
+  function matchRow(e) {
+    var comp = e.competitions[0], cs = comp.competitors;
+    var home = cs[0].homeAway === 'home' ? cs[0] : cs[1], away = home === cs[0] ? cs[1] : cs[0];
+    var st = e.status.type, cls = 'm', mid;
+    if (st.state === 'pre') {
+      mid = '<span class="ko">' + kickoff(e.date) + '</span>';
+      if (st.name && st.name !== 'STATUS_SCHEDULED') mid += '<span class="st">' + esc(st.shortDetail) + '</span>';
+    } else {
+      cls += st.state === 'in' ? ' live' : ' post';
+      mid = '<span class="sc">' + esc(home.score) + ' – ' + esc(away.score) + '</span><span class="st">' +
+        esc(st.state === 'in' ? (e.status.displayClock || st.shortDetail) : st.shortDetail) + '</span>';
+    }
+    return '<div class="' + cls + '">' + teamCell(home, 'home') + '<div class="mid">' + mid + '</div>' + teamCell(away, 'away') + '</div>';
+  }
+
+  function renderMatches() {
+    anyLive = false;
+    LEAGUES.forEach(function (lg) {
+      var d = matchData[lg.id], el = $('lg-' + lg.id);
+      var head = '<div class="lhead">' + (d && d.logo ? '<img src="' + esc(d.logo) + '">' : '') +
+        '<span class="ln">' + lg.en + '<span class="ar">' + lg.ar + '</span></span>' +
+        '<span class="lday">' + (d && d.list.length ? dayLabel(d.day, d.offset) : '') + '</span></div>';
+      if (!d) { el.innerHTML = head + '<div class="empty">Loading…</div>'; return; }
+      if (d.failed) { el.innerHTML = head + '<div class="empty">Scores unavailable — retrying</div>'; return; }
+      if (!d.list.length) { el.innerHTML = head + '<div class="empty">No matches this week</div>'; return; }
+      d.list.forEach(function (e) { if (e.status.type.state === 'in') anyLive = true; });
+      var pages = Math.ceil(d.list.length / PER_PAGE), p = matchPage % pages;
+      var rows = d.list.slice(p * PER_PAGE, p * PER_PAGE + PER_PAGE).map(matchRow).join('');
+      el.innerHTML = head + rows + (pages > 1 ? '<div class="pg">' + (p + 1) + ' / ' + pages + '</div>' : '');
+    });
+  }
+
+  function loadMatches() {
+    LEAGUES.forEach(function (lg) { loadLeague(lg, 0); });
+    clearTimeout(matchTimer);
+    matchTimer = setTimeout(loadMatches, anyLive ? 60000 : 5 * 60000); // every minute while a game is live
+  }
+
   renderPrayers();
   loadPrayers();
   loadWeather();
+  renderMatches();
+  loadMatches();
+  setInterval(function () { matchPage++; renderMatches(); }, 10000);
   tick();
   setInterval(tick, 1000);
   setInterval(loadWeather, 15 * 60 * 1000);
