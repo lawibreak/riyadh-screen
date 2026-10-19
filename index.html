@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riyadh Screen</title>
+<style>
+  :root {
+    --bg: #07090d;
+    --fg: #eef1f5;
+    --muted: #8a93a3;
+    --line: rgba(255,255,255,0.08);
+    --card: rgba(255,255,255,0.035);
+    --accent: #d9b56c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--fg); overflow: hidden; cursor: none; }
+  body { font-family: "Segoe UI", "LG Smart UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  /* whole layout drifts slowly to spread static pixels */
+  #stage {
+    position: absolute; inset: 4vh 4vw;
+    display: grid; grid-template-columns: 1.15fr 1fr; grid-template-rows: auto 1fr; gap: 3vh 4vw;
+    transition: transform 20s ease-in-out;
+  }
+  .ar { font-family: "Geeza Pro", "Noto Naskh Arabic", "Arial", sans-serif; direction: rtl; }
+
+  /* clock */
+  #clockBox { grid-column: 1; grid-row: 1; }
+  #time { font-size: 17vh; font-weight: 200; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+  #time small { font-size: 0.32em; color: var(--muted); margin-left: 0.4em; font-weight: 300; }
+  #dates { margin-top: 1.6vh; font-size: 3vh; color: var(--muted); display: flex; gap: 1.5vw; flex-wrap: wrap; align-items: baseline; }
+  #dates .hijri { color: var(--accent); }
+
+  /* next prayer */
+  #nextBox { grid-column: 2; grid-row: 1; align-self: end; text-align: right; }
+  #nextLabel { font-size: 2.4vh; color: var(--muted); text-transform: uppercase; letter-spacing: 0.18em; }
+  #nextName { font-size: 6vh; font-weight: 300; margin-top: 0.6vh; }
+  #nextName .ar { color: var(--accent); margin-left: 1vw; }
+  #countdown { font-size: 4.2vh; color: var(--accent); font-variant-numeric: tabular-nums; margin-top: 0.4vh; }
+
+  /* prayer list */
+  #prayers { grid-column: 1; grid-row: 2; align-self: end; display: grid; grid-template-columns: repeat(6, 1fr); gap: 1vw; }
+  .p { background: var(--card); border: 1px solid var(--line); border-radius: 1.4vh; padding: 2.2vh 1vw; text-align: center; }
+  .p .ar { font-size: 3.2vh; display: block; }
+  .p .en { font-size: 1.9vh; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 0.5vh; display: block; }
+  .p .t { font-size: 4.2vh; font-weight: 300; margin-top: 1.2vh; font-variant-numeric: tabular-nums; display: block; }
+  .p .t small { font-size: 0.5em; color: var(--muted); white-space: nowrap; }
+  .p.next { border-color: var(--accent); background: rgba(217,181,108,0.10); }
+  .p.next .t { color: var(--accent); }
+  .p.past { opacity: 0.45; }
+
+  /* weather */
+  #weather { grid-column: 2; grid-row: 2; align-self: end; }
+  #now { display: flex; align-items: center; justify-content: flex-end; gap: 2vw; }
+  #nowIcon { font-size: 11vh; line-height: 1; }
+  #nowTemp { font-size: 12vh; font-weight: 200; line-height: 1; }
+  #nowDesc { text-align: right; font-size: 2.6vh; color: var(--muted); margin-top: 1vh; }
+  #days { margin-top: 3vh; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8vw; }
+  .d { background: var(--card); border: 1px solid var(--line); border-radius: 1.4vh; padding: 1.8vh 0.5vw; text-align: center; }
+  .d .n { font-size: 2vh; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .d .i { font-size: 4.6vh; margin: 1vh 0; }
+  .d .hi { font-size: 2.8vh; }
+  .d .lo { font-size: 2.2vh; color: var(--muted); margin-left: 0.4vw; }
+  #status { position: absolute; right: 4vw; bottom: 1.2vh; font-size: 1.6vh; color: #4a5160; }
+  #radio {
+    position: absolute; left: 4vw; bottom: 1.2vh; font-size: 1.9vh; color: var(--muted);
+    display: flex; align-items: center; gap: 0.8vw;
+  }
+  #radio .dot { width: 1vh; height: 1vh; border-radius: 50%; background: #4a5160; }
+  #radio.on .dot { background: var(--accent); animation: pulse 2s ease-in-out infinite; }
+  #radio.on { color: var(--accent); }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+  #tapToPlay {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    background: rgba(7,9,13,0.92); border: 1px solid var(--accent); border-radius: 2vh;
+    padding: 3vh 4vw; text-align: center; font-size: 3vh; display: none;
+  }
+  #tapToPlay .ar { display: block; color: var(--accent); font-size: 3.6vh; margin-bottom: 1vh; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="clockBox">
+    <div id="time">--:--</div>
+    <div id="dates"><span id="greg"></span><span class="hijri ar" id="hijri"></span></div>
+  </div>
+
+  <div id="nextBox">
+    <div id="nextLabel">Next prayer · Riyadh</div>
+    <div id="nextName">—</div>
+    <div id="countdown"></div>
+  </div>
+
+  <div id="prayers"></div>
+
+  <div id="weather">
+    <div id="now"><div id="nowIcon"></div><div id="nowTemp">--°</div></div>
+    <div id="nowDesc"></div>
+    <div id="days"></div>
+  </div>
+</div>
+<div id="status"></div>
+<div id="radio"><span class="dot"></span><span class="ar">إذاعة القرآن الكريم</span><span id="radioState">· connecting</span></div>
+<div id="tapToPlay"><span class="ar">اضغط موافق لتشغيل إذاعة القرآن الكريم</span>Press OK to start Saudi Quran Radio</div>
+<audio id="quran" preload="none"></audio>
+
+<script>
+(function () {
+  var LAT = 24.7136, LON = 46.6753;
+  var PRAYERS = [
+    { key: 'Fajr',    en: 'Fajr',    ar: 'الفجر' },
+    { key: 'Sunrise', en: 'Sunrise', ar: 'الشروق' },
+    { key: 'Dhuhr',   en: 'Dhuhr',   ar: 'الظهر' },
+    { key: 'Asr',     en: 'Asr',     ar: 'العصر' },
+    { key: 'Maghrib', en: 'Maghrib', ar: 'المغرب' },
+    { key: 'Isha',    en: 'Isha',    ar: 'العشاء' }
+  ];
+  var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  var timings = {}, timingsDate = '', tomorrowFajr = null, hijriText = '';
+
+  function $(id) { return document.getElementById(id); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  // Riyadh is UTC+3 all year (no DST); work in that wall-clock regardless of the TV's own zone.
+  function riyadhNow() {
+    var d = new Date();
+    return new Date(d.getTime() + (180 + d.getTimezoneOffset()) * 60000);
+  }
+  function dateKey(d) { return pad(d.getDate()) + '-' + pad(d.getMonth() + 1) + '-' + d.getFullYear(); }
+  function minutesOf(hhmm) { var p = hhmm.split(':'); return +p[0] * 60 + +p[1]; }
+  function to12(hhmm) {
+    var p = hhmm.split(':'), h = +p[0], ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + p[1] + '<small> ' + ap + '</small>';
+  }
+
+  function cacheGet(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function cacheSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  function getJSON(url, ok, fail) {
+    var x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.timeout = 15000;
+    x.onload = function () {
+      if (x.status === 200) { try { ok(JSON.parse(x.responseText)); return; } catch (e) {} }
+      fail && fail();
+    };
+    x.onerror = x.ontimeout = function () { fail && fail(); };
+    x.send();
+  }
+
+  // ---------- prayer times (Umm al-Qura, method 4) ----------
+  function prayerURL(d) {
+    return 'https://api.aladhan.com/v1/timingsByCity/' + dateKey(d) +
+      '?city=Riyadh&country=Saudi%20Arabia&method=4';
+  }
+  function applyPrayer(data, key) {
+    timings = data.timings;
+    timingsDate = key;
+    var h = data.date.hijri;
+    hijriText = h.day + ' ' + h.month.ar + ' ' + h.year + 'هـ';
+    renderPrayers();
+  }
+  function loadPrayers() {
+    var now = riyadhNow(), key = dateKey(now);
+    var cached = cacheGet('prayer-' + key);
+    if (cached) applyPrayer(cached, key);
+    getJSON(prayerURL(now), function (j) {
+      cacheSet('prayer-' + key, j.data);
+      applyPrayer(j.data, key);
+    }, function () { if (!cached) setTimeout(loadPrayers, 60000); });
+
+    var tom = new Date(now.getTime() + 86400000);
+    getJSON(prayerURL(tom), function (j) { tomorrowFajr = j.data.timings.Fajr; });
+  }
+
+  function renderPrayers() {
+    var html = '';
+    for (var i = 0; i < PRAYERS.length; i++) {
+      var p = PRAYERS[i];
+      html += '<div class="p" id="p-' + p.key + '"><span class="ar">' + p.ar + '</span><span class="en">' + p.en +
+        '</span><span class="t">' + (timings[p.key] ? to12(timings[p.key]) : '--') + '</span></div>';
+    }
+    $('prayers').innerHTML = html;
+    $('hijri').textContent = hijriText;
+  }
+
+  function updateNext(now) {
+    if (!timings.Fajr) return;
+    var mins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    var next = null;
+    for (var i = 0; i < PRAYERS.length; i++) {
+      var p = PRAYERS[i], el = $('p-' + p.key);
+      var t = minutesOf(timings[p.key]);
+      if (el) el.className = 'p';
+      if (!next && t > mins) next = { p: p, t: t };
+      else if (el && t <= mins) el.className = 'p past';
+    }
+    if (!next) {
+      // after Isha: next is tomorrow's Fajr
+      next = { p: PRAYERS[0], t: minutesOf(tomorrowFajr || timings.Fajr) + 1440 };
+      for (var k = 0; k < PRAYERS.length; k++) { var e = $('p-' + PRAYERS[k].key); if (e) e.className = 'p'; }
+    }
+    var nel = $('p-' + next.p.key);
+    if (nel) nel.className = 'p next';
+    $('nextName').innerHTML = next.p.en + '<span class="ar">' + next.p.ar + '</span>';
+    var left = Math.max(0, Math.round((next.t - mins) * 60));
+    var hh = Math.floor(left / 3600), mm = Math.floor(left % 3600 / 60), ss = left % 60;
+    $('countdown').textContent = 'in ' + (hh ? hh + 'h ' : '') + pad(mm) + 'm ' + pad(ss) + 's';
+  }
+
+  // ---------- weather (Open-Meteo) ----------
+  function wx(code) {
+    if (code === 0) return ['☀️', 'Clear sky'];
+    if (code <= 2) return ['🌤️', 'Partly cloudy'];
+    if (code === 3) return ['☁️', 'Overcast'];
+    if (code <= 48) return ['🌫️', 'Fog / haze'];
+    if (code <= 57) return ['🌦️', 'Drizzle'];
+    if (code <= 67) return ['🌧️', 'Rain'];
+    if (code <= 77) return ['🌨️', 'Snow'];
+    if (code <= 82) return ['🌧️', 'Showers'];
+    if (code <= 86) return ['🌨️', 'Snow showers'];
+    return ['⛈️', 'Thunderstorm'];
+  }
+  function applyWeather(j) {
+    var c = j.current, w = wx(c.weather_code);
+    $('nowIcon').textContent = w[0];
+    $('nowTemp').textContent = Math.round(c.temperature_2m) + '°';
+    $('nowDesc').textContent = w[1] + ' · Feels ' + Math.round(c.apparent_temperature) + '° · Humidity ' +
+      c.relative_humidity_2m + '% · Wind ' + Math.round(c.wind_speed_10m) + ' km/h';
+    var html = '';
+    for (var i = 0; i < j.daily.time.length; i++) {
+      var p = j.daily.time[i].split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
+      html += '<div class="d"><div class="n">' + (i === 0 ? 'Today' : DAYS[d.getDay()]) + '</div><div class="i">' +
+        wx(j.daily.weather_code[i])[0] + '</div><span class="hi">' + Math.round(j.daily.temperature_2m_max[i]) +
+        '°</span><span class="lo">' + Math.round(j.daily.temperature_2m_min[i]) + '°</span></div>';
+    }
+    $('days').innerHTML = html;
+  }
+  function loadWeather() {
+    var cached = cacheGet('weather');
+    if (cached && !$('nowTemp').textContent.match(/\d/)) applyWeather(cached);
+    getJSON('https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON +
+      '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code' +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FRiyadh&forecast_days=5',
+      function (j) { cacheSet('weather', j); applyWeather(j); $('status').textContent = 'Updated ' + clock(riyadhNow()); },
+      function () { $('status').textContent = 'Weather offline — retrying'; });
+  }
+
+  // ---------- clock ----------
+  function clock(d) {
+    var h = d.getHours() % 12 || 12;
+    return h + ':' + pad(d.getMinutes());
+  }
+  function tick() {
+    var now = riyadhNow();
+    $('time').innerHTML = clock(now) + '<small>' + (now.getHours() >= 12 ? 'PM' : 'AM') + '</small>';
+    $('greg').textContent = DAYS[now.getDay()] + ', ' + now.getDate() + ' ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear();
+    if (dateKey(now) !== timingsDate && timingsDate) loadPrayers();
+    updateNext(now);
+  }
+
+  // slow drift so nothing sits on the same pixels for hours
+  function drift() {
+    var x = (Math.random() * 2 - 1) * 1.2, y = (Math.random() * 2 - 1) * 1.2;
+    $('stage').style.transform = 'translate(' + x + 'vw,' + y + 'vh)';
+  }
+
+  // ---------- Saudi Quran Radio (official stream, as listed by aloula.sa) ----------
+  var STREAM = 'https://stream.radiojar.com/0tpy1h0kxtzuv';
+  var audio = $('quran'), wantPlay = true, retryTimer = null;
+
+  function radioUI(state) {
+    $('radio').className = state === 'playing' ? 'on' : '';
+    $('radioState').textContent = '· ' + state;
+  }
+  function startRadio() {
+    clearTimeout(retryTimer);
+    audio.src = STREAM + '?t=' + Date.now();
+    var pr = audio.play();
+    if (pr && pr.catch) pr.catch(function (e) {
+      if (e && e.name === 'NotAllowedError') { $('tapToPlay').style.display = 'block'; radioUI('waiting for OK'); }
+      else retryRadio();
+    });
+  }
+  function retryRadio() {
+    if (!wantPlay) return;
+    radioUI('reconnecting');
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(startRadio, 5000);
+  }
+  audio.addEventListener('playing', function () { $('tapToPlay').style.display = 'none'; radioUI('playing'); });
+  audio.addEventListener('pause', function () { if (!wantPlay) radioUI('paused'); });
+  audio.addEventListener('error', retryRadio);
+  audio.addEventListener('ended', retryRadio);
+  audio.addEventListener('stalled', function () { if (wantPlay) retryTimer = setTimeout(startRadio, 15000); });
+
+  // OK / Enter on the remote: start, or toggle pause
+  function onUserKey(e) {
+    if (e.type === 'keydown' && e.keyCode !== 13 && e.keyCode !== 415 && e.keyCode !== 19) return;
+    if ($('tapToPlay').style.display === 'block' || audio.paused) { wantPlay = true; startRadio(); }
+    else { wantPlay = false; audio.pause(); }
+  }
+  document.addEventListener('keydown', onUserKey);
+  document.addEventListener('click', onUserKey);
+
+  renderPrayers();
+  loadPrayers();
+  loadWeather();
+  tick();
+  setInterval(tick, 1000);
+  setInterval(loadWeather, 15 * 60 * 1000);
+  setInterval(drift, 3 * 60 * 1000);
+  startRadio();
+})();
+</script>
+</body>
+</html>
