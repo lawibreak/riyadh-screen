@@ -299,12 +299,46 @@
 
   // OK / Enter on the remote: start, or toggle pause
   function onUserKey(e) {
+    requestWakeLock();
     if (e.type === 'keydown' && e.keyCode !== 13 && e.keyCode !== 415 && e.keyCode !== 19) return;
     if ($('tapToPlay').style.display === 'block' || audio.paused) { wantPlay = true; startRadio(); }
     else { wantPlay = false; audio.pause(); }
   }
   document.addEventListener('keydown', onUserKey);
   document.addEventListener('click', onUserKey);
+
+  // ---------- keep the TV from switching to its screen saver ----------
+  // Wake Lock where supported; otherwise a tiny muted, always-playing video,
+  // which webOS treats as active playback.
+  var wakeLock = null;
+  function requestWakeLock() {
+    try {
+      if (navigator.wakeLock && navigator.wakeLock.request) {
+        navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+  function startKeepAwakeVideo() {
+    try {
+      var c = document.createElement('canvas');
+      c.width = c.height = 2;
+      var ctx = c.getContext('2d');
+      if (!c.captureStream) return;
+      var v = document.createElement('video');
+      v.muted = true; v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.loop = true;
+      v.style.cssText = 'position:absolute;width:2px;height:2px;opacity:0.01;left:0;top:0;pointer-events:none';
+      v.srcObject = c.captureStream(1);
+      document.body.appendChild(v);
+      var n = 0;
+      setInterval(function () { ctx.fillStyle = (n++ % 2) ? '#07090d' : '#08090d'; ctx.fillRect(0, 0, 2, 2); }, 1000);
+      var p = v.play(); if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') requestWakeLock();
+  });
+  requestWakeLock();
+  startKeepAwakeVideo();
 
   renderPrayers();
   loadPrayers();
