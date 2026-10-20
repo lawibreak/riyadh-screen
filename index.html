@@ -12,8 +12,8 @@
     --bg: #07090d;
     --fg: #eef1f5;
     --muted: #8a93a3;
-    --line: rgba(255,255,255,0.08);
-    --card: rgba(255,255,255,0.035);
+    --line: rgba(255,255,255,0.10);
+    --card: rgba(0,0,0,0.28);
     --accent: #d9b56c;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -86,6 +86,10 @@
   .m.post { opacity: 0.6; }
   .empty { font-size: 2.2vh; color: var(--muted); padding-top: 1vh; }
   .pg { font-size: 1.6vh; color: #4a5160; text-align: right; margin-top: 0.4vh; }
+  /* sky: colours are set from JS following the prayer times */
+  #sky { position: absolute; inset: 0; background: #05070d; transition: background 60s linear; }
+  #stars { position: absolute; left: 0; top: 0; width: 2px; height: 2px; border-radius: 50%; transition: opacity 60s linear; }
+  #stage, #status, #radio, #tapToPlay { z-index: 1; }
   #status { position: absolute; right: 4vw; bottom: 1.2vh; font-size: 1.6vh; color: #4a5160; }
   #radio {
     position: absolute; left: 4vw; bottom: 1.2vh; font-size: 1.9vh; color: var(--muted);
@@ -104,6 +108,8 @@
 </style>
 </head>
 <body>
+<div id="sky"></div>
+<div id="stars"></div>
 <div id="stage">
   <div id="clockBox">
     <div id="time">--:--</div>
@@ -148,6 +154,7 @@
   var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+  var skyPainted = false;
   var timings = {}, timingsDate = '', tomorrowFajr = null, hijriText = '';
 
   function $(id) { return document.getElementById(id); }
@@ -290,6 +297,7 @@
     $('greg').textContent = DAYS[now.getDay()] + ', ' + now.getDate() + ' ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear();
     if (dateKey(now) !== timingsDate && timingsDate) loadPrayers();
     updateNext(now);
+    if (now.getSeconds() % 30 === 0 || !skyPainted) { updateSky(now); skyPainted = !!timings.Fajr; }
   }
 
   // slow drift so nothing sits on the same pixels for hours
@@ -454,8 +462,11 @@
       if (d.failed) { el.innerHTML = head + '<div class="empty">Scores unavailable — retrying</div>'; return; }
       if (!d.list.length) { el.innerHTML = head + '<div class="empty">No matches this week</div>'; return; }
       d.list.forEach(function (e) { if (e.status.type.state === 'in') anyLive = true; });
-      var pages = Math.ceil(d.list.length / PER_PAGE), p = matchPage % pages;
-      var rows = d.list.slice(p * PER_PAGE, p * PER_PAGE + PER_PAGE).map(matchRow).join('');
+      // as many rows as fit in the space the panel has (head + page counter ~6.5vh, rows 4.6vh)
+      var vh = window.innerHeight / 100, fit = Math.floor((el.clientHeight - 6.5 * vh) / (4.6 * vh));
+      var per = Math.max(1, Math.min(PER_PAGE, fit || PER_PAGE));
+      var pages = Math.ceil(d.list.length / per), p = matchPage % pages;
+      var rows = d.list.slice(p * per, p * per + per).map(matchRow).join('');
       el.innerHTML = head + rows + (pages > 1 ? '<div class="pg">' + (p + 1) + ' / ' + pages + '</div>' : '');
     });
   }
@@ -465,6 +476,69 @@
     clearTimeout(matchTimer);
     matchTimer = setTimeout(loadMatches, anyLive ? 60000 : 5 * 60000); // every minute while a game is live
   }
+
+  // ---------- sky that follows the prayer times ----------
+  // Keyframes are [minutes after midnight, top, middle, horizon, star opacity];
+  // every colour stays dark enough for white text.
+  function skyFrames() {
+    var t = timings, F = minutesOf(t.Fajr), S = minutesOf(t.Sunrise), D = minutesOf(t.Dhuhr),
+        A = minutesOf(t.Asr), M = minutesOf(t.Maghrib), I = minutesOf(t.Isha);
+    return [
+      [F - 30,  '#05070d', '#070b16', '#0b1222', 1],    // night
+      [F,       '#070b1c', '#0e1838', '#1c2a55', 0.8],  // Fajr: blue hour
+      [S - 10,  '#0f1a3a', '#2a2f5a', '#6a3f4e', 0.2],  // first light, pink horizon
+      [S + 20,  '#12305a', '#2a4d78', '#8a5a3c', 0],    // sunrise gold
+      [S + 90,  '#0f2f55', '#174070', '#2b5a85', 0],    // morning
+      [D,       '#0c3460', '#144478', '#2a6292', 0],    // midday
+      [A,       '#0f2f55', '#1c4068', '#45586a', 0],    // afternoon
+      [M - 40,  '#1a2a4a', '#43384a', '#8a5432', 0],    // golden hour
+      [M,       '#1a1a3a', '#4a2a40', '#9a4428', 0],    // sunset
+      [M + 25,  '#0e1230', '#261e45', '#4a2a4a', 0.4],  // dusk
+      [I,       '#080b1e', '#0e1230', '#1a1a38', 0.8],  // Isha
+      [I + 60,  '#05070d', '#070b16', '#0b1222', 1]     // night
+    ];
+  }
+  function hexRgb(h) { var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+  function mix(a, b, f) {
+    var x = hexRgb(a), y = hexRgb(b);
+    return 'rgb(' + Math.round(x[0] + (y[0] - x[0]) * f) + ',' + Math.round(x[1] + (y[1] - x[1]) * f) + ',' +
+      Math.round(x[2] + (y[2] - x[2]) * f) + ')';
+  }
+  function skyAt(mins) {
+    if (!timings.Fajr) return ['#05070d', '#070b16', '#0b1222', 1];
+    var base = skyFrames(), k = [];
+    // repeat the day either side of midnight so night wraps around
+    [-1440, 0, 1440].forEach(function (off) { base.forEach(function (f) { k.push([f[0] + off, f[1], f[2], f[3], f[4]]); }); });
+    for (var i = 0; i < k.length - 1; i++) {
+      if (mins >= k[i][0] && mins < k[i + 1][0]) {
+        var f = (mins - k[i][0]) / (k[i + 1][0] - k[i][0]);
+        return [mix(k[i][1], k[i + 1][1], f), mix(k[i][2], k[i + 1][2], f), mix(k[i][3], k[i + 1][3], f),
+          k[i][4] + (k[i + 1][4] - k[i][4]) * f];
+      }
+    }
+    return ['#05070d', '#070b16', '#0b1222', 1];
+  }
+  // ?sky=18:10 previews the sky at that Riyadh time
+  var skyOverride = (function () {
+    var m = /[?&]sky=(\d{1,2}):(\d{2})/.exec(location.search);
+    return m ? +m[1] * 60 + +m[2] : null;
+  })();
+  function updateSky(now) {
+    var mins = skyOverride !== null ? skyOverride : now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    var c = skyAt(mins), instant = !skyPainted || skyOverride !== null;
+    $('sky').style.transition = $('stars').style.transition = instant ? 'none' : '';
+    $('sky').style.background = 'linear-gradient(to bottom, ' + c[0] + ' 0%, ' + c[1] + ' 55%, ' + c[2] + ' 100%)';
+    $('stars').style.opacity = c[3].toFixed(2);
+  }
+  (function makeStars() {
+    var sh = [], seed = 7;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    for (var i = 0; i < 70; i++) {
+      sh.push(Math.round(rnd() * 100) + 'vw ' + Math.round(rnd() * 55) + 'vh 0 ' + (rnd() < 0.2 ? '1px' : '0') +
+        ' rgba(255,255,255,' + (0.25 + rnd() * 0.45).toFixed(2) + ')');
+    }
+    $('stars').style.boxShadow = sh.join(',');
+  })();
 
   renderPrayers();
   loadPrayers();
