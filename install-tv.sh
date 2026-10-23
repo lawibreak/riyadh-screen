@@ -4,8 +4,9 @@
 set -e
 IP="$1"; PASS="$2"
 [ -z "$IP" ] || [ -z "$PASS" ] && { echo "Usage: bash install-tv.sh <TV_IP> <PASSPHRASE>"; exit 1; }
-REPO=https://raw.githubusercontent.com/lawibreak/riyadh-screen/webos-app
-IPK=com.lawibreak.riyadhscreen_1.0.0_all.ipk
+BRANCH="${BRANCH:-webos-app}"
+REPO=https://raw.githubusercontent.com/lawibreak/riyadh-screen/$BRANCH
+IPK=com.lawibreak.riyadhscreen_1.1.0_all.ipk
 command -v npx >/dev/null || { echo "Install Node.js first: https://nodejs.org"; exit 1; }
 ARES="npx -y -p @webos-tools/cli"
 echo "Getting key from TV (Key Server must be on)..."
