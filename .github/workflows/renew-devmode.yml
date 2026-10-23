@@ -1,6 +1,6 @@
 name: Renew LG Developer Mode
 
-# Keeps the TV's Developer Mode session (and the Riyadh Screen app) from expiring.
+# Keeps each TV's Developer Mode session (and the Riyadh Screen app) from expiring.
 on:
   schedule:
     - cron: "17 3 * * 1"   # every Monday 03:17 UTC (06:17 Riyadh)
@@ -13,27 +13,41 @@ jobs:
   renew:
     runs-on: ubuntu-latest
     steps:
-      - name: Renew the TV's Developer Mode session
+      - name: Renew each TV's Developer Mode session
         env:
-          TOKEN: ${{ secrets.LG_DEVMODE_TOKEN }}
+          TOKEN_70: ${{ secrets.LG_DEVMODE_TOKEN }}
+          TOKEN_75: ${{ secrets.LG_DEVMODE_TOKEN_75 }}
         run: |
-          if [ -z "$TOKEN" ]; then echo "::error::Add the LG_DEVMODE_TOKEN secret first"; exit 1; fi
-          renew=$(curl -s -m 30 "https://developer.lge.com/secure/ResetDevModeSession.dev?sessionToken=$TOKEN")
-          check=$(curl -s -m 30 "https://developer.lge.com/secure/CheckDevModeSession.dev?sessionToken=$TOKEN")
-          echo "renew: $renew"
-          echo "check: $check"
-          echo "$renew" | grep -q '"result":"success"' || { echo "::error::LG did not accept the renewal"; exit 1; }
-          left=$(echo "$check" | sed -n 's/.*"errorMsg":"\([^"]*\)".*/\1/p')
-          echo "Time left: $left"
-          echo "LEFT=$left" >> "$GITHUB_ENV"
+          failed=0
+          notes="$RUNNER_TEMP/renewal.txt"; : > "$notes"
+          for tv in 70 75; do
+            name="${tv}-inch TV"
+            var="TOKEN_$tv"; token="${!var}"
+            if [ -z "$token" ]; then echo "::warning::$name: no secret set, skipped"; echo "$name: skipped (no secret)" >> "$notes"; continue; fi
+            renew=$(curl -s -m 30 "https://developer.lge.com/secure/ResetDevModeSession.dev?sessionToken=$token")
+            check=$(curl -s -m 30 "https://developer.lge.com/secure/CheckDevModeSession.dev?sessionToken=$token")
+            echo "$name renew: $renew"
+            echo "$name check: $check"
+            if echo "$renew" | grep -q '"result":"success"'; then
+              left=$(echo "$check" | sed -n 's/.*"errorMsg":"\([^"]*\)".*/\1/p')
+              echo "$name: $left hours left" >> "$notes"
+            else
+              echo "::error::$name: LG did not accept the renewal"
+              echo "$name: renewal FAILED" >> "$notes"
+              failed=1
+            fi
+          done
+          cat "$notes"
+          echo "FAILED=$failed" >> "$GITHUB_ENV"
 
       # GitHub pauses scheduled workflows in public repos after 60 days without
       # activity, so each run records the renewal in a small file.
       - uses: actions/checkout@v4
       - name: Record the renewal
         run: |
-          echo "Last renewed $(date -u +'%Y-%m-%d %H:%M UTC'), $LEFT hours left" > devmode-renewal.txt
+          { echo "Last renewed $(date -u +'%Y-%m-%d %H:%M UTC')"; cat "$RUNNER_TEMP/renewal.txt"; } > devmode-renewal.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add devmode-renewal.txt
           git commit -m "Record Developer Mode renewal" && git push
+          [ "$FAILED" = 0 ]
